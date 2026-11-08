@@ -23,6 +23,7 @@ module Ormolu.Config.Gen
   , ColumnLimit (..)
   , SingleDerivingParens (..)
   , ImportGrouping (..)
+  , Indentation (..)
   , emptyPrinterOpts
   , defaultPrinterOpts
   , defaultPrinterOptsYaml
@@ -48,7 +49,7 @@ import Text.Read (readEither, readMaybe)
 data PrinterOpts f =
   PrinterOpts
     { -- | Number of spaces per indentation step
-      poIndentation :: f Int
+      poIndentation :: f Indentation
     , -- | Max line length for automatic line breaking
       poColumnLimit :: f ColumnLimit
     , -- | Styling of arrows in type signatures
@@ -130,7 +131,7 @@ emptyPrinterOpts =
 defaultPrinterOpts :: PrinterOpts Identity
 defaultPrinterOpts =
   PrinterOpts
-    { poIndentation = pure 4
+    { poIndentation = pure Tabs
     , poColumnLimit = pure NoLimit
     , poFunctionArrows = pure TrailingArrows
     , poCommaStyle = pure Leading
@@ -200,8 +201,8 @@ parsePrinterOptsCLI f =
   pure PrinterOpts
     <*> f
       "indentation"
-      "Number of spaces per indentation step (default: 4)"
-      "INT"
+      "Number of spaces per indentation step (default: tabs)"
+      "OPTION"
     <*> f
       "column-limit"
       "Max line length for automatic line breaking (default: none)"
@@ -442,6 +443,11 @@ data ImportGrouping
   | ImportGroupByQualified
   | ImportGroupByScopeThenQualified
   | ImportGroupCustom (NonEmpty CT.ImportGroup)
+  deriving (Eq, Show)
+
+data Indentation
+  = Spaces
+  | Tabs
   deriving (Eq, Show)
 
 instance Aeson.FromJSON CommaStyle where
@@ -800,11 +806,36 @@ instance PrinterOptsFieldType ImportGrouping where
           , "Valid values are: \"legacy\", \"preserve\", \"single\", \"by-qualified\", \"by-scope\", \"by-scope-then-qualified\" or a valid YAML configuration for import groups (see fourmolu.yaml)"
           ]
 
+instance Aeson.FromJSON Indentation where
+  parseJSON =
+    \case
+       Aeson.String "tabs" ->
+         pure Tabs
+       Aeson.Number x
+         | Right x' <- (floatingOrInteger x :: Either Double Int) ->
+             pure $ Spaces x'
+       s ->
+         fail . unlines $
+           [ "unknown value: " <> show s,
+             "Valid values are: \"tabs\", or an integer"
+           ]
+
+instance PrinterOptsFieldType Indentation where
+  parsePrinterOptType =
+    \case
+      "tabs" -> Right Tabs
+      "Spaces" -> Right Spaces
+      s ->
+        Left . unlines $
+          [ "unknown value: " <> show s
+          , "Valid values are: \"tabs\", \"spaces N\" or a valid YAML configuration for indentation (see fourmolu.yaml)"
+          ]
+
 defaultPrinterOptsYaml :: String
 defaultPrinterOptsYaml =
   unlines
     [ "# Number of spaces per indentation step"
-    , "indentation: 4"
+    , "indentation: tabs"
     , ""
     , "# Max line length for automatic line breaking"
     , "column-limit: none"

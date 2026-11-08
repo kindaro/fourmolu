@@ -1,9 +1,10 @@
 {-# LANGUAGE PatternSynonyms #-}
 
-module Foo (
-  asdf,
-  bar,
-) where
+module Foo
+  ( asdf,
+    bar,
+  )
+where
 
 data Test
   = Test1

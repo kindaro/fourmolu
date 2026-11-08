@@ -53,9 +53,9 @@ allOptions =
       { name = "indentation",
         fieldName = Just "poIndentation",
         description = "Number of spaces per indentation step",
-        type_ = "Int",
-        default_ = HsInt 4,
-        ormolu = HsInt 2,
+        type_ = "Indentation",
+        default_ = HsExpr "Tabs",
+        ormolu = HsExpr "Tabs",
         sinceVersion = Just "0.1.0.0",
         cliOverrides = emptyOverrides
       },
@@ -609,5 +609,52 @@ allFieldTypes =
               "      , \"Valid values are: \\\"legacy\\\", \\\"preserve\\\", \\\"single\\\", \\\"by-qualified\\\", \\\"by-scope\\\", \\\"by-scope-then-qualified\\\" or a valid YAML configuration for import groups (see fourmolu.yaml)\"",
               "      ]"
             ]
-      }
-  ]
+      },
+    FieldTypeADT
+      { fieldTypeName = "Indentation",
+        adtConstructors =
+          [ "Spaces",
+            "Tabs"
+          ],
+        adtSchema =
+          ADTSchema
+            { adtOptions =
+                [ ADTOptionLiteral "tabs",
+                  ADTOptionDescription "Any positive integer"
+                ],
+              adtInputType =
+                ADTSchemaInputText
+                  [ ADTSchemaInputParserNumber
+                  , ADTSchemaInputParserString
+                  ]
+            },
+        adtRender =
+          [ ("Tabs", "tabs"),
+            ("Spaces", "spaces")
+          ],
+        adtParseJSON =
+          unlines
+            [ "\\case",
+              "   Aeson.String \"tabs\" ->",
+              "     pure Tabs",
+              "   Aeson.Number x",
+              "     | Right x' <- (floatingOrInteger x :: Either Double Int) ->",
+              "         pure $ Spaces x'",
+              "   s ->",
+              "     fail . unlines $",
+              "       [ \"unknown value: \" <> show s,",
+              "         \"Valid values are: \\\"tabs\\\", or an integer\"",
+              "       ]"
+            ],
+        adtParsePrinterOptType =
+          unlines
+            [ "\\case",
+              "  \"tabs\" -> Right Tabs",
+              "  \"Spaces\" -> Right Spaces",
+              "  s ->",
+              "    Left . unlines $",
+              "      [ \"unknown value: \" <> show s",
+              "      , \"Valid values are: \\\"tabs\\\", \\\"spaces N\\\" or a valid YAML configuration for indentation (see fourmolu.yaml)\"",
+              "      ]"
+            ]
+      }  ]

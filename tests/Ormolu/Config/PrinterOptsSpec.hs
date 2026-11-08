@@ -67,7 +67,7 @@ spec =
     [ TestGroup
         { label = "indentation",
           isMulti = False,
-          testCases = (,) <$> [2, 3, 4] <*> allOptions,
+          testCases = (,) <$> [Spaces 2, Spaces 3, Spaces 4, Tabs] <*> allOptions,
           updateConfig = \(indent, indentWheres) opts ->
             opts
               { poIndentation = pure indent,
